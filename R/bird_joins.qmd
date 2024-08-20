@@ -1,0 +1,84 @@
+---
+title: "Joining Birds Files"
+author: "Tom Gibbens-Matsuyama"
+format: html
+editor: visual
+editor_options: 
+  chunk_output_type: console
+---
+
+## Load Libraries
+
+```{r}
+library(tidyverse)
+library(here)
+library(datapasta)
+library(lubridate)
+```
+
+
+## Task 1
+
+# Read in Data
+
+```{r}
+birds <- read_csv(here("data", "52_pp52_birds_1.csv"))
+sites <- read_csv(here("data", "52_pp52_sites_1.csv"))
+surveys <- read_csv(here("data", "52_pp52_surveys_1.csv"))
+taxalist <- read_csv(here("data", "52_pp52_taxalist_1.csv"))
+```
+
+# Bird Subset
+
+```{r}
+birds_subset <- birds %>% 
+  filter(species_id %in% c("BHCO", "RWBL"),
+         site_id %in% c("LI-W", "NU-C"))
+```
+
+# Left Join Practice 
+
+```{r}
+birds_left <- left_join(birds_subset, sites, by = "site_id")
+birds_left <- left_join(birds_left, taxalist, by = "species_id")
+```
+
+# Full Join Practice
+
+```{r}
+# What should full Join look like?
+# We are adding all the information from both dfs together. 
+# There should be alot of NAs because the bird subset only is for 
+# species BHCO & RWBL, sites LI-W, NU-C
+
+birds_full <- full_join(birds_subset, sites, by = "site_id")
+
+```
+
+## Task 2 
+
+```{r}
+birds_rename <- birds %>% 
+  rename(birds_obs_notes = notes)
+
+birds_rename_sub <- left_join(birds_rename, taxalist, by = "species_id") 
+
+birds_rename_sub <- left_join(birds_rename_sub, sites, by = "site_id") 
+
+birds_rename_sub <- left_join(birds_rename_sub, surveys)
+
+# Only want surve_date, common_name, park_name, bird_count
+
+birds_rename_sub_1 <- birds_rename_sub %>% 
+  select(survey_date,common_name,park_name,bird_count)
+
+birds_rename_sub_1 <- birds_rename_sub_1 %>% 
+  mutate(survey_month = lubridate::month(survey_date)) %>% 
+  mutate(survey_month = as.factor(survey_month)) %>% 
+  relocate(survey_month, .after = survey_date) %>% 
+  group_by(park_name, survey_month) %>% 
+  summarize(sum(bird_count)) %>% 
+  filter(park_name %in% c("Lindo", "Orme", "Palomino", "Sonrisa"))
+
+```
+
